@@ -1,4 +1,4 @@
-/* kicstart 0.1.x (nightly) (c) http://w2ui.com/kickstart, vitmalina@gmail.com */
+/* kicstart 0.1.x (custom CGG build) (c) http://w2ui.com/kickstart, vitmalina@gmail.com */
 /************************************************
 *  Library: KickStart - Minimalistic Framework
 *   - Dependencies: jQuery
