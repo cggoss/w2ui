@@ -5019,7 +5019,7 @@
                     msgLeft = String(sel.length).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,") + ' ' + w2utils.lang('selected');
                     var tmp = sel[0];
                     if (typeof tmp == 'object') tmp = tmp.recid + ', '+ w2utils.lang('Column') +': '+ tmp.column;
-                    if (sel.length == 1) msgLeft = w2utils.lang('Record ID') + ': '+ tmp + ' ';
+                    //if (sel.length == 1) msgLeft = w2utils.lang('Record ID') + ': '+ tmp + ' ';
                 }
                 $('#grid_'+ this.name +'_footer .w2ui-footer-left').html(msgLeft);
                 // toolbar
