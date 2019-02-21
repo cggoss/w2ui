@@ -583,6 +583,23 @@
             this.total = this.records.length;
             // mark all records as shown
             this.last.searchIds = [];
+
+            if (this.last.logic === 'RECIDS') {
+                var recids = this.last.field;
+                var recidMap = {};
+                recids.forEach(function (recid) {
+                    recidMap[recid] = recid;
+                });
+                var w2grid = this;
+                w2grid.records.forEach(function (record, index) {
+                    if (recidMap[record.recid]) {
+                        w2grid.last.searchIds.push(index);
+                    }
+                });
+                w2grid.total = w2grid.last.searchIds.length;
+                return 0;
+            }
+
             // prepare date/time fields
             this.prepareData();
             // hide records that did not match
@@ -1249,11 +1266,13 @@
                 var logic = 'AND';
                 if (typeof value == 'string') {
                     logic = value.toUpperCase();
-                    if (logic != 'OR' && logic != 'AND') logic = 'AND';
+                    if (logic != 'OR' && logic != 'AND' && logic != 'RECIDS') logic = 'AND';
                 }
                 last_search = '';
                 last_multi  = true;
                 last_logic  = logic;
+                last_field  = field;
+
                 for (var f in field) {
                     var data   = field[f];
                     var search = this.getSearch(data.field);
