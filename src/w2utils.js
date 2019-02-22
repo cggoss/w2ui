@@ -890,11 +890,6 @@ var w2utils = (function () {
     }
 })();
 
-// CGG: expose those as globals
-window.w2ui = w2ui;
-window.w2utils = w2utils;
-window.w2obj = w2obj;
-
 /***********************************************************
 *  Generic Event Object
 *  --- This object is reused across all other
