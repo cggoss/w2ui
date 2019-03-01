@@ -202,6 +202,8 @@
         this.reorderRows     = false;
         this.searchContextRows = 0;
         this.markSearch      = true;
+        this.dragRow        = false;	// draggable row support
+        this.dragTextProperty = undefined;
         this.columnTooltip   = 'normal'; // can be normal, top, bottom, left, right
         this.disableCVS      = false;    // disable Column Virtual Scroll
         this.textSearch      = 'begins'; // default search type for text
@@ -1035,6 +1037,23 @@
             this.total = this.records.length;
             // mark all records as shown
             this.last.searchIds = [];
+
+            if (this.last.logic === 'RECIDS') {
+                var recids = this.last.field;
+                var recidMap = {};
+                recids.forEach(function (recid) {
+                    recidMap[recid] = recid;
+                });
+                var w2grid = this;
+                w2grid.records.forEach(function (record, index) {
+                    if (recidMap[record.recid]) {
+                        w2grid.last.searchIds.push(index);
+                    }
+                });
+                w2grid.total = w2grid.last.searchIds.length;
+                return 0;
+            }
+
             // prepare date/time fields
             this.prepareData();
             // hide records that did not match
@@ -2101,11 +2120,13 @@
                 var logic = 'AND';
                 if (typeof value == 'string') {
                     logic = value.toUpperCase();
-                    if (logic != 'OR' && logic != 'AND') logic = 'AND';
+                    if (logic != 'OR' && logic != 'AND' && logic != 'RECIDS') logic = 'AND';
                 }
                 last_search = '';
                 last_multi  = true;
                 last_logic  = logic;
+                last_field  = field;
+
                 for (var i = 0; i < field.length; i++) {
                     var data   = field[i];
                     var search = this.getSearch(data.field);
@@ -3731,7 +3752,7 @@
                 case 17: // ctrl key
                 case 91: // cmd key
                     // SLOW: 10k records take 7.0
-                    if (empty) break;
+                        if (empty) break;
                     // in Safari need to copy to buffer on cmd or ctrl key (otherwise does not work)
                     if (obj.last.isSafari) {
                         obj.last.copy_event = obj.copy(false, event);
@@ -4635,6 +4656,25 @@
             } else if ( !obj.reorderColumns && obj.last.columnDrag ) {
                 obj.last.columnDrag.remove();
             }
+
+            /////////// added by elfwine for drag row support start
+            if ( obj.dragRow ) {
+                obj.initRowDrag();
+            } else {
+                $( obj.box ).find('tr').each(function(){
+                    $(this).removeAttr('draggable');
+                });
+                $(obj.box).off('dragstart', 'tr', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                $(obj.box).off('dragend', 'tr', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            }
+            /////////// added by elfwine for drag row support end
+
             return (new Date()).getTime() - time;
         },
 
@@ -4846,6 +4886,7 @@
                     obj.last.move = { type: 'text-select' };
                     obj.last.userSelect = 'text';
                 } else {
+                    if (!obj.multiSelect || obj.dragRow) return;
                     var tmp = event.target;
                     var pos = {
                         x: event.offsetX - 10,
@@ -5565,6 +5606,138 @@
             this.last.scrollLeft = sWidth+1;
             this.scroll();
         },
+
+        /////////// added by elfwine for drag row support start
+        /////////// modified by CGG
+        // Init row drag
+        initRowDrag: function (box) {
+            var obj = this,
+                _dragData = {};
+            _dragData.lastInt = null;
+            _dragData.pressed = false;
+            _dragData.timeout = null;;
+
+            $( obj.box ).find('tr').each(function(){
+                if(typeof $(this).attr('id') != 'undefined' && ($(this).is('.w2ui-even') || $(this).is('.w2ui-odd'))) {
+                    $(this).attr('draggable', 'true');
+                }
+            });
+            //attach orginal event listener
+            $(obj.box).off('dragstart', 'tr');
+            $(obj.box).off('dragend', 'tr');
+            $(obj.box).on('dragstart', 'tr', dragRowStart);
+            $(obj.box).on('dragend', 'tr', catchDragEnd);
+
+            function catchDragEnd(){
+                $(obj.box).removeClass('w2ui_dragging');
+                _dragData.pressed = false;
+                clearTimeout( _dragData.timeout );
+                //console.log('drag row end');
+                if($(_dragData.ghost).length) {
+                    $(_dragData.ghost).remove();
+                }
+                _dragData = {};
+                $(document.getElementById('w2ui-drag-image')).remove();
+            }
+            /**
+             *
+             * @param event, mousedown
+             * @returns {boolean} false, preventsDefault
+             */
+            function dragRowStart ( event ) {
+                $(document.getElementById('w2ui-drag-image')).remove();
+                $(obj.box).addClass('w2ui_dragging');
+                var recid = (event.target.tagName == 'TR' ? $(event.target).attr('recid') : $(event.target).parents('tr').attr('recid'));
+                if (typeof recid != 'undefined') {
+                    var selectionAsStrings = obj.getSelection().map(function(recid) {
+                        return recid + "";
+                    });
+                    if (selectionAsStrings.indexOf(recid) < 0) {
+                        obj.click(recid, event);
+                    }
+                }
+
+                if ( _dragData.timeout ) clearTimeout( _dragData.timeout );
+                //var self = this;
+                _dragData.pressed = true;
+                var rows = $( obj.box ).find( 'tr.w2ui-selected' );
+                setDragImage(event, rows);
+                if( rows.length > 0 ) {
+
+                } else {
+                    //console.log('Selected row : ' + $(this).attr('id'));
+                    if (typeof recid == 'undefined') return;
+                    obj.select(recid);
+                }
+
+
+                _dragData.selectedRows = rows;
+                event.originalEvent.dataTransfer.effectAllowed = 'copy';
+
+                //------------------------
+                var selectedRows = obj.getSelection().map(function (recid) {
+                    return obj.get(recid);
+                });
+                event.originalEvent.dataTransfer.setData('json', JSON.stringify(selectedRows));
+
+                var draggedText = selectedRows.map(function (row) {
+                    return row[obj.dragTextProperty];
+                });
+                event.originalEvent.dataTransfer.setData('text', draggedText.join('\n'));
+                //------------------------
+            }
+
+            function setDragImage(event, rows) {
+                if (rows.length === 1 || !event.originalEvent.dataTransfer.setDragImage) {
+                    return;
+                }
+
+                var element = document.getElementById('w2ui-drag-image');
+                if (!element) {
+                    element = document.createElement('div');
+                    element.id = 'w2ui-drag-image';
+                    document.body.appendChild(element);
+                }
+
+                var $element = $(element);
+                $element.css('z-index', '-1');
+                $element.css('position', 'absolute');
+                $element.css('top', '0');
+                $element.css('right', '0');
+                $element.css('padding', '10px');
+                $element.css('background-color', '#fefefe');
+                $element.css('border', '2px solid gray');
+                $element.html('Dragging ' + rows.length + ' files');
+                $element.show();
+
+                event.originalEvent.dataTransfer.setDragImage(document.getElementById('w2ui-drag-image'),0,0);
+            }
+
+            function dragRowOver ( event ) {
+                if ( !_dragData.pressed ) return;
+
+                var cursorX = event.originalEvent.pageX,
+                    cursorY = event.originalEvent.pageY,
+                    offsets = _dragData.offsets;
+                trackGhost( cursorX, cursorY );
+            }
+
+            function dragRowEnd ( event ) {
+                _dragData.pressed = false;
+
+                var eventData,
+                    target,
+                    selected,
+                    rowConfig,
+                    targetRow,
+                    ghosts = $( '.w2ui-grid-ghost' );
+
+                ghosts.remove();
+                if ( _dragData.marker ) _dragData.marker.remove();
+                _dragData = {};
+            }
+        },
+        /////////// added by elfwine for drag row support start
 
         initToolbar: function () {
             var obj = this;
@@ -7508,7 +7681,7 @@
                     if (this.show.statusRecordID && sel.length == 1) {
                         var tmp = sel[0];
                         if (typeof tmp == 'object') tmp = tmp.recid + ', '+ w2utils.lang('Column') +': '+ tmp.column;
-                        msgLeft = w2utils.lang('Record ID') + ': '+ tmp + ' ';
+                       // msgLeft = w2utils.lang('Record ID') + ': '+ tmp + ' ';
                     }
                 }
                 $('#grid_'+ this.name +'_footer .w2ui-footer-left').html(msgLeft);
