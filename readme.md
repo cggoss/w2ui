@@ -63,27 +63,14 @@ Please make sure that the same issue was not previously submitted by someone els
 
 ## Building
 
-I have switched to Grunt as a build tool. You will find Gruntfile.js in the root. You still can build with ANT if you are more comformatble with it. 
-Both processes will produces same w2ui.js and w2ui.css files. Grunt has a few more tasks, such as watch, to auto compiles less and js files as you 
-develop. Both tools will do the following:
-
-- Compile LESS files
-- Concatenate and minify CSS files
-- Concatenate, uglify and minify JS files 
-
-To use ANT, you will need to install NodeJS and NPM, then run the following command to install dependencies
-
+Install dependencies (including dev dependencies required to build):
 ```
-sudo npm install less -g
-sudo npm install clean-css -g
-sudo npm install uglify-js@1 -g
+npm install
 ```
 
-To use Grunt, you will still need to install NodeJS and NPM, then run npm install that will install all dependencies as
-they are described in package.json file.
-
+Build:
 ```
-sudo npm install
+npx grunt clean less concat
 ```
 
 ## File Structure
