@@ -5136,11 +5136,16 @@
                 $.extend(this.last, newState.last);
                 var sTop  = this.last.scrollTop;
                 var sLeft = this.last.scrollLeft;
-                for (var c in newState.columns) {
+                for (var c = 0; c < newState.columns.length; c++) {
                     var tmp = newState.columns[c];
-                    var col = this.getColumn(tmp.field);
-                    if (col) $.extend(col, tmp);
+                    var col_index = this.getColumn(tmp.field, true);
+                    if (col_index !== null) {
+                       $.extend(this.columns[col_index], tmp);
+                       // restore column order from saved state
+                       if (c !== col_index) this.columns.splice(c, 0, this.columns.splice(col_index, 1)[0]);
+                    }
                 }
+
                 this.sortData.splice(0, this.sortData.length);
                 for (var c in newState.sortData) this.sortData.push(newState.sortData[c]);
                 this.searchData.splice(0, this.searchData.length);
