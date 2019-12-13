@@ -3532,7 +3532,7 @@
 
                     //conclude event
                     obj.trigger( $.extend( eventData, { phase: 'after' } ) );
-                }, 150 );//end timeout wrapper
+                }, 400 );//end timeout wrapper
             }
 
             function dragColOver ( event ) {

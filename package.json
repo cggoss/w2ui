@@ -1,6 +1,6 @@
 {
     "name": "@cggoss/w2ui",
-    "version": "1.4.4-snapshot.11",
+    "version": "1.4.4-snapshot.12",
     "title": "W2UI: New JavaScript UI Library",
     "description": "Complete set of JavaScript UI widget for development of data-driven web applications. Includes layout, grid, toolbar, sidebar, tabs, forms, fields, popup, overlay",
     "license": "MIT",
